@@ -1,13 +1,32 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { IChatHistoryResponse, IMessage } from "@/types/types";
-import { useState } from "react";
-// import { fetchChatHistoryAPI, sendPromptForQueryAPI } from "@/actions/messages.actions";
+import { useEffect, useState } from "react";
+import type { Node, Relationship } from '@neo4j-nvl/base'
+import { fetchGraphNodesRelationships } from "@/lib/neo4j";
 
-export function Chatbot({ messages, chatId }: { messages: IChatHistoryResponse['chatHistory']; chatId: string }) {
+const GraphWrapper = dynamic(() => import('./GraphWrapper'), { ssr: false })
+
+
+export function Chatbot({ messages, chatId }: { messages: IChatHistoryResponse['chatHistory']; chatId: string;}) {
+    const [nodes, setNodes] = useState<Node[]>([])
+    const [rels, setRels] = useState<Relationship[]>([])
     const [chatMessages, setChatMessages] = useState(messages);
     const [prompt, setPrompt] = useState("");
     const [loading, setLoading] = useState(false);
+
+
+    async function fetchGraphData() {
+        const { nodes, rels } = await fetchGraphNodesRelationships();
+        console.log("Fetched graph data:", { nodes, rels });
+        setNodes(nodes);
+        setRels(rels);
+    }
+
+    useEffect(() => {
+        fetchGraphData();
+    }, [])
 
     function handlePromptChange(e: React.ChangeEvent<HTMLInputElement>) {
         setPrompt(e.target.value);
@@ -62,7 +81,7 @@ export function Chatbot({ messages, chatId }: { messages: IChatHistoryResponse['
          <div className="min-h-screen w-full bg-gray-50">
             {/* Main Content Area (Graph Visualization) */}
             <div className="flex items-center justify-center h-screen">
-                <p className="text-gray-400">Graph Visualization Area</p>
+                <GraphWrapper nodes={nodes} rels={rels} />
             </div>
 
             {/* Chatbot Container */}
